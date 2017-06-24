@@ -13,3 +13,8 @@ libs:
 tags:
   - http
   - c
+
+cdefs:
+  LWIP_DEBUG: 0x80
+  NETIF_DEBUG: 0x80
+  ENC28J60_USE_PBUF: 1

@@ -1,4 +1,4 @@
-#include <netif/mchdrv.h>
+#include <mchdrv.h>
 #include <lwip/pbuf.h>
 #include <netif/etharp.h>
 #include "enc28j60.h"
