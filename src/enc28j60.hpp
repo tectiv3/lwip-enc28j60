@@ -93,7 +93,7 @@ public:
     *     @return <i>uint16_t</i> Size of recieved data
     *     @note   Data buffer is shared by recieve and transmit functions
     */
-    static uint16_t packetReceive ();
+    static uint16_t packetReceive (enc_device_t *dev, struct pbuf **buf);
 
     /**   @brief  Put ENC28J60 in sleep mode
     */

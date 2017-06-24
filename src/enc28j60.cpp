@@ -581,22 +581,23 @@ void ENC28J60::packetSend(uint16_t len) {
     }
 }
 
-
-uint16_t ENC28J60::packetReceive() {
-    static uint16_t gNextPacketPtr = RXSTART_INIT;
+uint16_t ENC28J60::packetReceive(enc_device_t *dev, struct pbuf **buf) {
     static bool     unreleasedPacket = false;
     uint16_t len = 0;
 
+	if (*buf != NULL)
+		return 0;
+
     if (unreleasedPacket) {
-        if (gNextPacketPtr == 0) 
+        if (dev->next_frame_location == 0) 
             writeReg(ERXRDPT, RXSTOP_INIT);
         else
-            writeReg(ERXRDPT, gNextPacketPtr - 1);
+            writeReg(ERXRDPT, dev->next_frame_location - 1);
         unreleasedPacket = false;
     }
 
     if (readRegByte(EPKTCNT) > 0) {
-        writeReg(ERDPT, gNextPacketPtr);
+        writeReg(ERDPT, dev->next_frame_location);
 
         struct {
             uint16_t nextPacket;
@@ -606,16 +607,21 @@ uint16_t ENC28J60::packetReceive() {
 
         readBuf(sizeof header, (byte*) &header);
 
-        gNextPacketPtr  = header.nextPacket;
+        dev->next_frame_location  = header.nextPacket;
         len = header.byteCount - 4; //remove the CRC count
-        if (len>bufferSize-1)
-            len=bufferSize-1;
+        if (len > bufferSize-1)
+            len = bufferSize-1;
         if ((header.status & 0x80)==0)
             len = 0;
-        else
-            readBuf(len, buffer);
+        else {
+			/* pbuf processing looks at the total length of pbuf */
+			*buf = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
+            readBuf(len, (*buf)->payload);
+		}
         buffer[len] = 0;
         unreleasedPacket = true;
+		/* returning to 0 as ERXST has to be 0 according to errata */
+		dev->rdpt = (dev->rdpt + len) % (dev->rxbufsize);
 
         writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
     }
