@@ -346,7 +346,7 @@ void enc_ethernet_setup(enc_device_t *dev, uint16_t rxbufsize, uint8_t mac[6])
 
 	/* pull transmitter and receiver out of reset */
 	enc_BFC(dev, ENC_ECON1, ENC_ECON1_TXRST | ENC_ECON1_RXRST);
-	printf("Rev: %d", enc_RCR(ENC_EREVID));
+	printf("Rev: %d", enc_RCR(dev, ENC_EREVID));
 }
 
 /* Partial function of enc_transmit. Always call this as transmit_start /
