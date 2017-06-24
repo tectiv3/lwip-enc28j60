@@ -420,7 +420,7 @@ static void writePhy (byte address, uint16_t data) {
         ;
 }
 
-byte ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* macaddr, byte csPin) {
+uint8_t ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* macaddr, byte csPin) {
     bufferSize = size;
     dev->rxbufsize = size;
     initSPI();
@@ -459,8 +459,7 @@ byte ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* macaddr
     writeOp(ENC28J60_BIT_FIELD_SET, EIE, EIE_INTIE|EIE_PKTIE);
     writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
 
-    byte rev = readRegByte(EREVID);
-	printf("Rev: %d", rev);
+    uint8_t rev = readRegByte(EREVID);
     // microchip forgot to step the number on the silcon when they
     // released the revision B7. 6 is now rev B7. We still have
     // to see what they do when they release B8. At the moment
