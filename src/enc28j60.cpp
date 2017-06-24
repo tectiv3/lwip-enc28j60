@@ -440,22 +440,25 @@ uint8_t ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* maca
     writeRegByte(ERXFCON, ERXFCON_UCEN|ERXFCON_CRCEN|ERXFCON_PMEN|ERXFCON_BCEN);
     writeReg(EPMM0, 0x303f);
     writeReg(EPMCS, 0xf7f9);
-    writeRegByte(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS);
-    writeRegByte(MACON2, 0x00);
+	// setup mac
+    writeRegByte(MACON1, MACON1_MARXEN|MACON1_TXPAUS|MACON1_RXPAUS); //enable data receive and flow control
+    writeRegByte(MACON2, 0x00); // reset 
     writeOp(ENC28J60_BIT_FIELD_SET, MACON3,
-            MACON3_PADCFG0|MACON3_TXCRCEN|MACON3_FRMLNEN);
+            MACON3_PADCFG0|MACON3_TXCRCEN|MACON3_FRMLNEN|MACON3_FULDPX); // padding, crc, frame control, full duplex
     writeReg(MAIPG, 0x0C12);
-    writeRegByte(MABBIPG, 0x12);
-    writeReg(MAMXFL, MAX_FRAMELEN);
+    writeRegByte(MABBIPG, 0x12); // 0x15 frame span
+    writeReg(MAMXFL, MAX_FRAMELEN); // set max frame size
     writeRegByte(MAADR5, macaddr[0]);
     writeRegByte(MAADR4, macaddr[1]);
     writeRegByte(MAADR3, macaddr[2]);
     writeRegByte(MAADR2, macaddr[3]);
     writeRegByte(MAADR1, macaddr[4]);
     writeRegByte(MAADR0, macaddr[5]);
-	writePhy(PHCON2, PHCON1_PDPXMD);
-    writePhy(PHCON2, PHCON2_HDLDIS);
+	// setup phy
+	writePhy(PHCON2, PHCON1_PDPXMD); // full duplex
+    writePhy(PHCON2, PHCON2_HDLDIS); // disable loopback
     SetBank(ECON1);
+
     writeOp(ENC28J60_BIT_FIELD_SET, EIE, EIE_INTIE|EIE_PKTIE);
     writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
 
