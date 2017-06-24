@@ -1,0 +1,15 @@
+author: matwey
+description: Enc28j60 driver
+type: lib
+version: 1.0
+skeleton_version: 2017-05-18
+sources:
+  - src
+
+libs:
+  - origin: https://github.com/tectiv3/arduino-spi
+  # - origin: https://github.com/mongoose-os-libs/spi
+
+tags:
+  - http
+  - c

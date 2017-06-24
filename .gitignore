@@ -4,3 +4,4 @@ html
 examples/netblink/lwip
 # object and binary files
 examples/netblink/build
+.DS_Store
