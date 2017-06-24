@@ -13,9 +13,7 @@
 #include "enchw.h"
 #include "enc28j60.h"
 
-#if defined(ENC28J60_USE_PBUF) && !defined(DEBUG)
-#define DEBUG(...) LWIP_DEBUGF(NETIF_DEBUG, (__VA_ARGS__))
-#endif
+#define DEBUG(...) printf (__VA_ARGS__)
 
 #ifndef DEBUG
 #error "Please provide a DEBUG(...) macro that behaves like a printf."
@@ -348,6 +346,7 @@ void enc_ethernet_setup(enc_device_t *dev, uint16_t rxbufsize, uint8_t mac[6])
 
 	/* pull transmitter and receiver out of reset */
 	enc_BFC(dev, ENC_ECON1, ENC_ECON1_TXRST | ENC_ECON1_RXRST);
+	printf("Rev: %d", enc_RCR(ENC_EREVID));
 }
 
 /* Partial function of enc_transmit. Always call this as transmit_start /

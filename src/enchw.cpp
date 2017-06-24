@@ -13,13 +13,16 @@ void enchw_setup(enchw_device_t *dev) {
 	SPI.begin();
 	SPI.setBitOrder(SPI_MSBFIRST);
     pinMode(SS_PIN, OUTPUT);
+	printf("enchw_setup\n");
 }
 
 void enchw_select(enchw_device_t *dev) {
+	printf("chip enable\n");
     digitalWrite(SS_PIN, LOW);
 }
 
 void enchw_unselect(enchw_device_t *dev) {
+	printf("chip disable\n");
     digitalWrite(SS_PIN, HIGH);
 }
 
