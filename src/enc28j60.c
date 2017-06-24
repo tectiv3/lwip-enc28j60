@@ -45,16 +45,14 @@ int enc_setup_basic(enc_device_t *dev)
 	return 0;
 }
 
-static void set_erxnd(enc_device_t *dev, uint16_t erxnd)
-{
+static void set_erxnd(enc_device_t *dev, uint16_t erxnd) {
 	if (erxnd != dev->rxbufsize) {
 		dev->rxbufsize = erxnd;
 		enc_WCR16(dev, ENC_ERXNDL, erxnd);
 	}
 }
 
-static void set_erdpt(enc_device_t *dev, uint16_t erdpt)
-{
+static void set_erdpt(enc_device_t *dev, uint16_t erdpt) {
 	if (erdpt != dev->rdpt) {
 		dev->rdpt = erdpt;
 		enc_WCR16(dev, ENC_ERDPTL, erdpt);
@@ -177,21 +175,23 @@ uint8_t enc_RCR(enc_device_t *dev, enc_register_t reg) {
 	ensure_register_accessible(dev, reg);
 	return command(dev, reg & ENC_REGISTERMASK, 0);
 }
+
 void enc_WCR(enc_device_t *dev, uint8_t reg, uint8_t data) {
 	ensure_register_accessible(dev, reg);
 	command(dev, 0x40 | (reg & ENC_REGISTERMASK), data);
 }
+// bit set
 void enc_BFS(enc_device_t *dev, uint8_t reg, uint8_t data) {
 	ensure_register_accessible(dev, reg);
 	command(dev, 0x80 | (reg & ENC_REGISTERMASK), data);
 }
+// bit clear
 void enc_BFC(enc_device_t *dev, uint8_t reg, uint8_t data) {
 	ensure_register_accessible(dev, reg);
 	command(dev, 0xa0 | (reg & ENC_REGISTERMASK), data);
 }
 
-void enc_RBM(enc_device_t *dev, uint8_t *dest, uint16_t start, uint16_t length)
-{
+void enc_RBM(enc_device_t *dev, uint8_t *dest, uint16_t start, uint16_t length) {
 	if (start != ENC_READLOCATION_ANY)
 		set_erdpt(dev, start);
 
@@ -215,9 +215,9 @@ static void WBM_raw(enc_device_t *dev, uint8_t *src, uint16_t length)
 	/** @todo this is actually just triggering another pause */
 	enchw_unselect(HWDEV);
 }
-
-void enc_WBM(enc_device_t *dev, uint8_t *src, uint16_t start, uint16_t length)
-{
+// write bufer memory 
+void enc_WBM(enc_device_t *dev, uint8_t *src, uint16_t start, uint16_t length) {
+	// write pointer
 	enc_WCR16(dev, ENC_EWRPTL, start);
 
 	WBM_raw(dev, src, length);
