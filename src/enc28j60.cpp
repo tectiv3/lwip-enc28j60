@@ -357,21 +357,6 @@ static void writeOp (byte op, byte address, byte data) {
     disableChip();
 }
 
-//static void readBuf(uint16_t len, byte* data) { //this bit trying to re-write from the latest code
-//    uint8_t nextbyte;
-//
-//    enableChip();
-//    if (len != 0) {    
-//        SPI.transfer(ENC28J60_READ_BUF_MEM);
-//
-//       while (--len) {
-//            
-//        *data++ = nextbyte;
-//		}
-//    }
-//    disableChip(); 
-//}
-
 static void readBuf(uint16_t len, byte* data) { //this bit ipsis literis from Seradisis's port
     enableChip();
 	SPI.transfer(ENC28J60_READ_BUF_MEM);
@@ -380,18 +365,6 @@ static void readBuf(uint16_t len, byte* data) { //this bit ipsis literis from Se
     }
     disableChip();
 }
-
-//static void writeBuf(uint16_t len, const byte* data) { //this bit trying to re-write from the latest code
-//    enableChip();
-//    if (len != 0) {
-//        SPI.transfer(ENC28J60_WRITE_BUF_MEM);
-//           
-//        while (--len) {
-//			SPI.transfer(*data++);
-//     	}
-//    }
-//    disableChip();
-//}
 
 static void writeBuf(uint16_t len, const byte* data) { //this bit ipsis literis from Seradisis's port
     enableChip();
@@ -647,32 +620,6 @@ uint16_t ENC28J60::packetReceive() {
         writeOp(ENC28J60_BIT_FIELD_SET, ECON2, ECON2_PKTDEC);
     }
     return len;
-}
-
-void ENC28J60::copyout (byte page, const byte* data) {
-    uint16_t destPos = SCRATCH_START + (page << SCRATCH_PAGE_SHIFT);
-    if (destPos < SCRATCH_START || destPos > SCRATCH_LIMIT - SCRATCH_PAGE_SIZE)
-        return;
-    writeReg(EWRPT, destPos);
-    writeBuf(SCRATCH_PAGE_SIZE, data);
-}
-
-void ENC28J60::copyin (byte page, byte* data) {
-    uint16_t destPos = SCRATCH_START + (page << SCRATCH_PAGE_SHIFT);
-    if (destPos < SCRATCH_START || destPos > SCRATCH_LIMIT - SCRATCH_PAGE_SIZE)
-        return;
-    writeReg(ERDPT, destPos);
-    readBuf(SCRATCH_PAGE_SIZE, data);
-}
-
-byte ENC28J60::peekin (byte page, byte off) {
-    byte result = 0;
-    uint16_t destPos = SCRATCH_START + (page << SCRATCH_PAGE_SHIFT) + off;
-    if (SCRATCH_START <= destPos && destPos < SCRATCH_LIMIT) {
-        writeReg(ERDPT, destPos);
-        readBuf(1, &result);
-    }
-    return result;
 }
 
 // Contributed by Alex M. Based on code from: http://blog.derouineau.fr

@@ -95,25 +95,6 @@ public:
     */
     static uint16_t packetReceive ();
 
-    /**   @brief  Copy data from ENC28J60 memory
-    *     @param  page Data page of memory
-    *     @param  data Pointer to buffer to copy data to
-    */
-    static void copyout (uint8_t page, const uint8_t* data);
-
-    /**   @brief  Copy data to ENC28J60 memory
-    *     @param  page Data page of memory
-    *     @param  data Pointer to buffer to copy data from
-    */
-    static void copyin (uint8_t page, uint8_t* data);
-
-    /**   @brief  Get single byte of data from ENC28J60 memory
-    *     @param  page Data page of memory
-    *     @param  off Offset of data within page
-    *     @return Data value
-    */
-    static uint8_t peekin (uint8_t page, uint8_t off);
-
     /**   @brief  Put ENC28J60 in sleep mode
     */
     static void powerDown();  // contrib by Alex M.
