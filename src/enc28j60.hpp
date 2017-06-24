@@ -75,7 +75,7 @@ public:
                                uint8_t csPin = PA8);
 #endif
     static void transmit_pbuf(enc_device_t *dev, struct pbuf *buf);
-	static int read_received_pbuf(enc_device_t *dev, struct pbuf **buf);
+
 	static uint8_t get_packets_count();
 
     /**   @brief  Check if network link is connected
@@ -87,7 +87,7 @@ public:
     *     @param  len Size of data to send
     *     @note   Data buffer is shared by recieve and transmit functions
     */
-    static void packetSend (uint16_t len);
+    static void packetSend (struct pbuf *buf);
 
     /**   @brief  Copy recieved packets to data buffer
     *     @return <i>uint16_t</i> Size of recieved data

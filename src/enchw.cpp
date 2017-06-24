@@ -17,12 +17,10 @@ void enchw_setup(enchw_device_t *dev) {
 }
 
 void enchw_select(enchw_device_t *dev) {
-	printf("chip enable\n");
     digitalWrite(SS_PIN, LOW);
 }
 
 void enchw_unselect(enchw_device_t *dev) {
-	printf("chip disable\n");
     digitalWrite(SS_PIN, HIGH);
 }
 

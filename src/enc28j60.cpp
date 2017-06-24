@@ -471,6 +471,10 @@ bool ENC28J60::isLinkUp() {
     return (readPhyByte(PHSTAT2) >> 2) & 1;
 }
 
+uint8_t ENC28J60::get_packets_count() {
+	return readRegByte(EPKTCNT);
+}
+
 /*
 struct __attribute__((__packed__)) transmit_status_vector {
     uint16_t transmitByteCount;
@@ -506,12 +510,13 @@ struct transmit_status_vector {
     #define BREAKORCONTINUE break;
 #endif
 
-void ENC28J60::packetSend(uint16_t len) {
+void ENC28J60::packetSend(struct pbuf *buf) {
+	uint16_t len = buf->tot_len;
     byte retry = 0;
 
-    // #if ETHERCARD_SEND_PIPELINING
-        // goto resume_last_transmission;
-    // #endif
+    #if ETHERCARD_SEND_PIPELINING
+        goto resume_last_transmission;
+    #endif
     while (1) {
         // latest errata sheet: DS80349C 
         // always reset transmit logic (Errata Issue 12)
@@ -529,7 +534,13 @@ void ENC28J60::packetSend(uint16_t len) {
             writeReg(EWRPT, TXSTART_INIT);
             writeReg(ETXND, TXSTART_INIT+len);
             writeOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
-            writeBuf(len, buffer);
+			//send data
+			while(1) {
+				writeBuf(buf->len, buf->payload);
+				if (buf->len == buf->tot_len)
+					break;
+				buf = buf->next;
+			}
         }
    
         // initiate transmission
@@ -538,7 +549,7 @@ void ENC28J60::packetSend(uint16_t len) {
             if (retry == 0) return;
         #endif
 
-    // resume_last_transmission:
+    resume_last_transmission:
 
         // wait until transmission has finished; referrring to the data sheet and 
         // to the errata (Errata Issue 13; Example 1) you only need to wait until either 
@@ -609,8 +620,8 @@ uint16_t ENC28J60::packetReceive(enc_device_t *dev, struct pbuf **buf) {
 
         dev->next_frame_location  = header.nextPacket;
         len = header.byteCount - 4; //remove the CRC count
-        if (len > bufferSize-1)
-            len = bufferSize-1;
+        if (len > bufferSize - 1)
+            len = bufferSize - 1;
         if ((header.status & 0x80)==0)
             len = 0;
         else {
