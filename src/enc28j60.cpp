@@ -319,7 +319,7 @@ static void readBuf(uint16_t len, byte* data) {
     disableChip(); 
 }
 
-static void writeBuf(uint16_t len, const byte* data) {
+static void writeBuf(uint16_t len, uint8_t *data) {
     enableChip();
     if (len != 0) {
         xferSPI(ENC28J60_WRITE_BUF_MEM);
@@ -366,7 +366,7 @@ static void readBuf(uint16_t len, byte* data) { //this bit ipsis literis from Se
     disableChip();
 }
 
-static void writeBuf(uint16_t len, const byte* data) { //this bit ipsis literis from Seradisis's port
+static void writeBuf(uint16_t len, uint8_t *data) { //this bit ipsis literis from Seradisis's port
     enableChip();
 	SPI.transfer(ENC28J60_WRITE_BUF_MEM);
 
@@ -420,8 +420,9 @@ static void writePhy (byte address, uint16_t data) {
         ;
 }
 
-byte ENC28J60::initialize (uint16_t size, const byte* macaddr, byte csPin) {
+byte ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* macaddr, byte csPin) {
     bufferSize = size;
+    dev->rxbufsize = size;
     initSPI();
     selectPin = csPin;
     pinMode(selectPin, OUTPUT);
@@ -459,6 +460,7 @@ byte ENC28J60::initialize (uint16_t size, const byte* macaddr, byte csPin) {
     writeOp(ENC28J60_BIT_FIELD_SET, ECON1, ECON1_RXEN);
 
     byte rev = readRegByte(EREVID);
+	printf("Rev: %d", rev);
     // microchip forgot to step the number on the silcon when they
     // released the revision B7. 6 is now rev B7. We still have
     // to see what they do when they release B8. At the moment
@@ -510,6 +512,8 @@ struct transmit_status_vector {
     #define BREAKORCONTINUE break;
 #endif
 
+/* pbuf is not guaranteed to have a contiguous
+ * memory region to be transmitted. */
 void ENC28J60::packetSend(struct pbuf *buf) {
 	uint16_t len = buf->tot_len;
     byte retry = 0;
@@ -536,7 +540,7 @@ void ENC28J60::packetSend(struct pbuf *buf) {
             writeOp(ENC28J60_WRITE_BUF_MEM, 0, 0x00);
 			//send data
 			while(1) {
-				writeBuf(buf->len, buf->payload);
+				writeBuf(buf->len, (uint8_t*) buf->payload);
 				if (buf->len == buf->tot_len)
 					break;
 				buf = buf->next;
@@ -548,9 +552,9 @@ void ENC28J60::packetSend(struct pbuf *buf) {
         #if ETHERCARD_SEND_PIPELINING
             if (retry == 0) return;
         #endif
-
+#if ETHERCARD_SEND_PIPELINING
     resume_last_transmission:
-
+#endif
         // wait until transmission has finished; referrring to the data sheet and 
         // to the errata (Errata Issue 13; Example 1) you only need to wait until either 
         // TXIF or TXERIF gets set; however this leads to hangs; apparently Microchip
@@ -627,9 +631,8 @@ uint16_t ENC28J60::packetReceive(enc_device_t *dev, struct pbuf **buf) {
         else {
 			/* pbuf processing looks at the total length of pbuf */
 			*buf = pbuf_alloc(PBUF_RAW, len, PBUF_RAM);
-            readBuf(len, (*buf)->payload);
+            readBuf(len, (uint8_t*) (*buf)->payload);
 		}
-        buffer[len] = 0;
         unreleasedPacket = true;
 		/* returning to 0 as ERXST has to be 0 according to errata */
 		dev->rdpt = (dev->rdpt + len) % (dev->rxbufsize);

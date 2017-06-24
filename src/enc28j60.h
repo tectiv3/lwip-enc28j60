@@ -37,6 +37,22 @@
 #define ENC_HEAP_START      SCRATCH_LIMIT
 #define ENC_HEAP_END        0x2000
 
+typedef struct {
+	/** The chip's active register page ENC_ECON1[0:1] */
+	// enc_register_t last_used_register;
+	/** Configured receiver buffer size; cached value of of ERXND[H:L] */
+	uint16_t rxbufsize;
+	/** Read pointer; cached value for ERDPT */
+	uint16_t rdpt;
+
+	/** Where to start reading the next received frame */
+	uint16_t next_frame_location;
+
+	/** Pointer for the hardware implementation to access device
+	 * information */
+	void *hwdev;
+} enc_device_t;
+
 /** This class provide low-level interfacing with the ENC28J60 network interface. This is used by the EtherCard class and not intended for use by (normal) end users. */
 class ENC28J60 {
 public:
@@ -59,22 +75,21 @@ public:
     *     @return <i>uint8_t</i> ENC28J60 firmware version or zero on failure.
     */
 #if defined(__AVR__)
-    static uint8_t initialize (const uint16_t size, const uint8_t* macaddr,
+    static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = 8);
 #endif
 #if defined(ESP8266)
-	static uint8_t initialize (const uint16_t size, const uint8_t* macaddr,
+	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = 15);
 #endif
 #if defined(ESP32)
-	static uint8_t initialize (const uint16_t size, const uint8_t* macaddr,
+	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = 5);
 #endif
 #if defined(__STM32F1__)
-	static uint8_t initialize (const uint16_t size, const uint8_t* macaddr,
+	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = PA8);
 #endif
-    static void transmit_pbuf(enc_device_t *dev, struct pbuf *buf);
 
 	static uint8_t get_packets_count();
 

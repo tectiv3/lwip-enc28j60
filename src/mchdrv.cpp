@@ -1,13 +1,13 @@
 #include <mchdrv.h>
 #include <lwip/pbuf.h>
 #include <netif/etharp.h>
-#include "enc28j60.hpp"
+#include "enc28j60.h"
 
 void mchdrv_poll(struct netif *netif) {
 	err_t result;
 	struct pbuf *buf = NULL;
 
-	uint8_t epktcnt;
+	// uint8_t epktcnt;
 	enc_device_t *dev = (enc_device_t*)netif->state;
 
 	// epktcnt = enc_RCR(dev, ENC_EPKTCNT);
@@ -23,15 +23,15 @@ void mchdrv_poll(struct netif *netif) {
 }
 
 static err_t mchdrv_linkoutput(struct netif *netif, struct pbuf *buf) {
-	enc_device_t *dev = (enc_device_t*)netif->state;
-	ENC28J60::transmit_pbuf(dev, buf);
+	// enc_device_t *dev = (enc_device_t*)netif->state;
+	ENC28J60::packetSend(buf);
 	printf("sent %d bytes.\n", buf->tot_len);
 	/* FIXME: evaluate result state */
 	return ERR_OK;
 }
 
 err_t mchdrv_init(struct netif *netif) {
-	int result;
+	// int result;
 	enc_device_t *dev = (enc_device_t*)netif->state;
 
 	printf("Starting mchdrv_init.\n");
@@ -48,10 +48,11 @@ err_t mchdrv_init(struct netif *netif) {
 	// 	printf("Error %d in enc_bist_manual, interface setup aborted.\n", result));
 	// 	return ERR_IF;
 	// }
-	ENC28J60::initialize(4*1025, netif->hwaddr);
-	dev->last_used_register = ENC_BANK_INDETERMINATE;
+	// dev->last_used_register = ENC_BANK_INDETERMINATE;
 	dev->rxbufsize = ~0;
 	dev->rdpt = ~0;
+
+	ENC28J60::initialize(dev, 4*1024, netif->hwaddr);
 	// enc_ethernet_setup(dev, 4*1024, netif->hwaddr);
 
 	netif->output = etharp_output;
