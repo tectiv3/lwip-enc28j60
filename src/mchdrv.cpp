@@ -16,8 +16,8 @@ void mchdrv_poll(struct netif *netif) {
 	// if (epktcnt) {
 		int len = ENC28J60::packetReceive(dev, &buf);
 		// printf("incoming: %d packages, first read into %x\n", epktcnt, (unsigned int)(buf));
-		printf("received %d bytes\n", len);
 		if (len) {
+			printf("received %d bytes\n", len);
 			result = netif->input(buf, netif);
 			printf("received with result %d\n", result);
 		}
