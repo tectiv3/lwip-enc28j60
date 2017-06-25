@@ -4,13 +4,14 @@
 #include "enc28j60.h"
 
 void mchdrv_poll(struct netif *netif) {
-	err_t result;
+	// err_t result;
 	struct pbuf *buf = NULL;
 	enc_device_t *dev = (enc_device_t*)netif->state;
 	int len = ENC28J60::packetReceive(dev, &buf);
 	if (len) {
 		// printf("received %d bytes\n", len);
-		result = netif->input(buf, netif);
+		// result =
+		netif->input(buf, netif);
 		// printf("received with result %d\n", result);
 	}
 }
