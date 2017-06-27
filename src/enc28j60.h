@@ -13,6 +13,10 @@
 
 #include <lwip/pbuf.h>
 
+#include "fw/src/mgos_mongoose.h"
+#include "fw/src/mgos_features.h"
+#include "fw/src/mgos_hal.h"
+
 #ifndef ENC28J60_H
 #define ENC28J60_H
 
@@ -63,21 +67,12 @@ public:
 
     static uint8_t* tcpOffset () { return buffer + 0x36; } //!< Pointer to the start of TCP payload
 
-    /**   @brief  Initialise SPI interface
-    *     @note   Configures Arduino pins as input / output, etc.
-    */
-    static void initSPI ();
-
     /**   @brief  Initialise network interface
     *     @param  size Size of data buffer
     *     @param  macaddr Pointer to 6 byte hardware (MAC) address
     *     @param  csPin Arduino pin used for chip select (enable network interface SPI bus). Default = 8
     *     @return <i>uint8_t</i> ENC28J60 firmware version or zero on failure.
     */
-#if defined(__AVR__)
-    static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
-                               uint8_t csPin = 8);
-#endif
 #if defined(ESP8266)
 	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = 15);
@@ -85,10 +80,6 @@ public:
 #if defined(ESP32)
 	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
                                uint8_t csPin = 5);
-#endif
-#if defined(__STM32F1__)
-	static uint8_t initialize (enc_device_t *dev, const uint16_t size, const uint8_t* macaddr,
-                               uint8_t csPin = PA8);
 #endif
 
 	static uint8_t get_packets_count();
@@ -159,17 +150,11 @@ public:
     *     @param  csPin Arduino pin used for chip select (enable SPI bus)
     *     @return <i>uint8_t</i> 0 on failure
     */
-#if defined (__AVR__)
-    static uint8_t doBIST(uint8_t csPin = 8);
-#endif
 #if defined(ESP8266)
 	static uint8_t doBIST(uint8_t csPin = 15);
 #endif
 #if defined(ESP32)
 	static uint8_t doBIST(uint8_t csPin = 5);
-#endif
-#if defined(__STM32F1__)
-	static uint8_t doBIST(uint8_t csPIN = PA8);
 #endif
 
     /**   @brief  Copies a slice from the current packet to RAM
@@ -210,8 +195,8 @@ public:
     static void memcpy_from_enc(void* dest, uint16_t source, int16_t num);
 };
 
-typedef ENC28J60 Ethernet; //!< Define alias Ethernet for ENC28J60
 
+typedef ENC28J60 Ethernet; //!< Define alias Ethernet for ENC28J60
 
 /** Workaround for Errata 13.
 *   The transmission hardware may drop some packets because it thinks a late collision

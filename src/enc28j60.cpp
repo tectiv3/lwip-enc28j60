@@ -8,15 +8,14 @@
 //
 // 2010-05-20 <jc@wippler.nl>
 
-#include <Arduino.h> // Arduino 1.0
 #include "enc28j60.h"
 
+#include "SPI.h"
+
 #include "fw/src/mgos_app.h"
-#include "fw/src/mgos_mongoose.h"
+#include "fw/src/mgos_gpio.h"
 #include "fw/src/mgos_sys_config.h"
-
-#include <SPI.h>
-
+#include "mongoose/mongoose.h"
 
 uint16_t ENC28J60::bufferSize;
 bool ENC28J60::broadcast_enabled = false;
@@ -239,145 +238,73 @@ bool ENC28J60::promiscuous_enabled = false;
 
 #define FULL_SPEED  1   // switch to full-speed SPI for bulk transfers
 
-static byte Enc28j60Bank;
-static byte selectPin;
+static uint8_t Enc28j60Bank;
+static uint8_t selectPin;
 
-#ifdef __AVR__
-void ENC28J60::initSPI () {
-    pinMode(SS, OUTPUT);
-    digitalWrite(SS, HIGH);
-    pinMode(MOSI, OUTPUT);
-    pinMode(SCK, OUTPUT);
-    pinMode(MISO, INPUT);
+// struct mgos_spi *spi_;
+// struct mgos_spi_txn txn_;
 
-    digitalWrite(MOSI, HIGH);
-    digitalWrite(MOSI, LOW);
-    digitalWrite(SCK, LOW);
-
-    SPCR = bit(SPE) | bit(MSTR); // 8 MHz @ 16
-    bitSet(SPSR, SPI2X);
-}
-#else
-void ENC28J60::initSPI () {
+static void initSPI () {
 	SPI.begin();
-	SPI.setBitOrder(SPI_MSBFIRST);
+	SPI.setBitOrder(MSBFIRST);
 }
-#endif
 
 static void enableChip () {
-    digitalWrite(selectPin, LOW);
+	mgos_gpio_write(selectPin, 0);
 }
 
 static void disableChip () {
-    digitalWrite(selectPin, HIGH);
+	mgos_gpio_write(selectPin, 1);
 }
 
-#ifdef __AVR__ // if i am an AVR, use this custom SPI transfer routine.
-static void xferSPI (byte data) {
-    SPDR = data;
-    while (!(SPSR&(1<<SPIF)))
-        ;
+static uint8_t transfer(uint8_t data) {
+	return SPI.transfer(data);
+	// struct mgos_spi_txn txn = txn_;
+	// if (spi_ == nullptr) return 0;
+	// txn.fd.tx_data = txn.fd.rx_data = &data;
+	// txn.fd.len = sizeof(data);
+	// if (!mgos_spi_run_txn(spi_, true /* full_duplex */, &txn)) data = 0;
+	// return data;
 }
 
-static byte readOp (byte op, byte address) {
+static uint8_t readOp (uint8_t op, uint8_t address) {
     enableChip();
-    xferSPI(op | (address & ADDR_MASK));
-    xferSPI(0x00);
-    if (address & 0x80)
-        xferSPI(0x00);
-    byte result = SPDR;
-    disableChip();
-    return result;
-}
-
-static void writeOp (byte op, byte address, byte data) {
-    enableChip();
-    xferSPI(op | (address & ADDR_MASK));
-    xferSPI(data);
-    disableChip();
-}
-
-static void readBuf(uint16_t len, byte* data) {
-    uint8_t nextbyte;
-
-    enableChip();
-    if (len != 0) {    
-        xferSPI(ENC28J60_READ_BUF_MEM);
-          
-        SPDR = 0x00; 
-        while (--len) {
-            while (!(SPSR & (1<<SPIF)))
-                ;
-            nextbyte = SPDR;
-            SPDR = 0x00;
-            *data++ = nextbyte;     
-        }
-        while (!(SPSR & (1<<SPIF)))
-            ;
-        *data++ = SPDR;    
-    }
-    disableChip(); 
-}
-
-static void writeBuf(uint16_t len, uint8_t *data) {
-    enableChip();
-    if (len != 0) {
-        xferSPI(ENC28J60_WRITE_BUF_MEM);
-           
-        SPDR = *data++;    
-        while (--len) {
-            uint8_t nextbyte = *data++;
-        	while (!(SPSR & (1<<SPIF)))
-                ;
-            SPDR = nextbyte;
-     	};  
-        while (!(SPSR & (1<<SPIF)))
-            ;
-    }
-    disableChip();
-}
-
-#else // Else, use SPI.transfer from SPI library.
-
-static byte readOp (byte op, byte address) {
-    enableChip();
-	byte result;
-	SPI.transfer(op | (address & ADDR_MASK));
-	result = SPI.transfer(0x00);
+	uint8_t result;
+	transfer(op | (address & ADDR_MASK));
+	result = transfer(0x00);
 	if (address & 0x80)
-		result = SPI.transfer(0x00);
+		result = transfer(0x00);
     disableChip();
     return result;
 }
 
-static void writeOp (byte op, byte address, byte data) {
+static void writeOp (uint8_t op, uint8_t address, uint8_t data) {
     enableChip();
-	SPI.transfer(op | (address & ADDR_MASK));
-	SPI.transfer(data);
+	transfer(op | (address & ADDR_MASK));
+	transfer(data);
     disableChip();
 }
 
-static void readBuf(uint16_t len, byte* data) { //this bit ipsis literis from Seradisis's port
+static void readBuf(uint16_t len, uint8_t*  data) { //this bit ipsis literis from Seradisis's port
     enableChip();
-	SPI.transfer(ENC28J60_READ_BUF_MEM);
+	transfer(ENC28J60_READ_BUF_MEM);
     while (len--) {
-		*data++ = SPI.transfer(0x00);
+		*data++ = transfer(0x00);
     }
     disableChip();
 }
 
 static void writeBuf(uint16_t len, uint8_t *data) { //this bit ipsis literis from Seradisis's port
     enableChip();
-	SPI.transfer(ENC28J60_WRITE_BUF_MEM);
+	transfer(ENC28J60_WRITE_BUF_MEM);
 
 	while (len--)
-		SPI.transfer(*data++);
+		transfer(*data++);
 
     disableChip();
 }
-#endif
 
-static void SetBank (byte address) {
+static void SetBank (uint8_t address) {
     if ((address & BANK_MASK) != Enc28j60Bank) {
         writeOp(ENC28J60_BIT_FIELD_CLR, ECON1, ECON1_BSEL1|ECON1_BSEL0);
         Enc28j60Bank = address & BANK_MASK;
@@ -385,26 +312,26 @@ static void SetBank (byte address) {
     }
 }
 
-static byte readRegByte (byte address) {
+static uint8_t readRegByte (uint8_t address) {
     SetBank(address);
     return readOp(ENC28J60_READ_CTRL_REG, address);
 }
 
-static uint16_t readReg(byte address) {
+static uint16_t readReg(uint8_t address) {
     return readRegByte(address) + (readRegByte(address+1) << 8);
 }
 
-static void writeRegByte (byte address, byte data) {
+static void writeRegByte (uint8_t address, uint8_t data) {
     SetBank(address);
     writeOp(ENC28J60_WRITE_CTRL_REG, address, data);
 }
 
-static void writeReg(byte address, uint16_t data) {
+static void writeReg(uint8_t address, uint16_t data) {
     writeRegByte(address, data);
     writeRegByte(address + 1, data >> 8);
 }
 
-static uint16_t readPhyByte (byte address) {
+static uint16_t readPhyByte (uint8_t address) {
     writeRegByte(MIREGADR, address);
     writeRegByte(MICMD, MICMD_MIIRD);
     while (readRegByte(MISTAT) & MISTAT_BUSY)
@@ -413,22 +340,22 @@ static uint16_t readPhyByte (byte address) {
     return readRegByte(MIRD+1);
 }
 
-static void writePhy (byte address, uint16_t data) {
+static void writePhy (uint8_t address, uint16_t data) {
     writeRegByte(MIREGADR, address);
     writeReg(MIWR, data);
     while (readRegByte(MISTAT) & MISTAT_BUSY)
         ;
 }
 
-uint8_t ENC28J60::initialize (enc_device_t *dev, uint16_t size, const byte* macaddr, byte csPin) {
+uint8_t ENC28J60::initialize (enc_device_t *dev, uint16_t size, const uint8_t*  macaddr, uint8_t csPin) {
     bufferSize = size;
     dev->rxbufsize = size;
     initSPI();
     selectPin = csPin;
-    pinMode(selectPin, OUTPUT);
+	mgos_gpio_set_mode(selectPin, MGOS_GPIO_MODE_OUTPUT);
     disableChip();
     writeOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
-    delay(2); // errata B7/2
+    mgos_usleep(2000); // errata B7/2
     while (!readOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY)
         ;
     writeReg(ERXST, RXSTART_INIT);
@@ -518,7 +445,7 @@ struct transmit_status_vector {
  * memory region to be transmitted. */
 void ENC28J60::packetSend(struct pbuf *buf) {
 	uint16_t len = buf->tot_len;
-    byte retry = 0;
+    uint8_t retry = 0;
 
     #if ETHERCARD_SEND_PIPELINING
         goto resume_last_transmission;
@@ -586,7 +513,7 @@ void ENC28J60::packetSend(struct pbuf *buf) {
         transmit_status_vector tsv;   
         uint16_t etxnd = readReg(ETXND);
         writeReg(ERDPT, etxnd+1);
-        readBuf(sizeof(transmit_status_vector), (byte*) &tsv);
+        readBuf(sizeof(transmit_status_vector), (uint8_t* ) &tsv);
         // LATECOL is bit number 29 in TSV (starting from 0)
 
         if (!((readRegByte(EIR) & EIR_TXERIF) && (tsv.bytes[3] & 1<<5) /*tsv.transmitLateCollision*/) || retry > 16U) {
@@ -622,7 +549,7 @@ uint16_t ENC28J60::packetReceive(enc_device_t *dev, struct pbuf **buf) {
             uint16_t status;
         } header;
 
-        readBuf(sizeof header, (byte*) &header);
+        readBuf(sizeof header, (uint8_t* ) &header);
 
         dev->next_frame_location  = header.nextPacket;
         len = header.byteCount - 4; //remove the CRC count
@@ -695,23 +622,19 @@ void ENC28J60::disablePromiscuous (bool temporary) {
     }
 }
 
-uint8_t ENC28J60::doBIST ( byte csPin) {
-#define RANDOM_FILL     0b0000
-#define ADDRESS_FILL    0b0100
-#define PATTERN_SHIFT   0b1000
-#define RANDOM_RACE     0b1100
+uint8_t ENC28J60::doBIST ( uint8_t csPin) {
+	#define RANDOM_FILL     0b0000
+	#define ADDRESS_FILL    0b0100
+	#define PATTERN_SHIFT   0b1000
+	#define RANDOM_RACE     0b1100
 
-// init
-#ifdef __AVR__ // if i am an AVR, do this part of the AVR-specific SPI routine.
-    if (bitRead(SPCR, SPE) == 0)
-#endif
-        initSPI();
+	initSPI();
     selectPin = csPin;
-    pinMode(selectPin, OUTPUT);
+	mgos_gpio_set_mode(selectPin, MGOS_GPIO_MODE_OUTPUT);
     disableChip();
 
     writeOp(ENC28J60_SOFT_RESET, 0, ENC28J60_SOFT_RESET);
-    delay(2); // errata B7/2
+	mgos_usleep(2000);
     while (!readOp(ENC28J60_READ_CTRL_REG, ESTAT) & ESTAT_CLKRDY) ;
 
 
@@ -757,7 +680,8 @@ uint8_t ENC28J60::doBIST ( byte csPin) {
 
     // Now start the BIST with random data test, and also keep on swapping the
     // DMA/BIST memory ports.
-    writeRegByte(EBSTSD, 0b10101010 | millis());
+	unsigned long millis = mg_time() * 1000;
+    writeRegByte(EBSTSD, 0b10101010 |  millis);
     writeRegByte(EBSTCON, EBSTCON_TME | EBSTCON_PSEL | EBSTCON_BISTST | RANDOM_FILL);
 
 
