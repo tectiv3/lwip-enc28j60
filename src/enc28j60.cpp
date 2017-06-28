@@ -246,7 +246,7 @@ static uint8_t selectPin;
 
 static void initSPI () {
 	SPI.begin();
-	SPI.setBitOrder(MSBFIRST);
+	SPI.setBitOrder(1);
 }
 
 static void enableChip () {
